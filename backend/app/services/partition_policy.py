@@ -35,14 +35,31 @@ class PartitionPolicyService(BaseModuleService):
         # 1) 联动湖表注册：将分区键写入对应湖表
         lake_tables = store.find_by_field("lake_table", "表名", table_name)
         if lake_tables:
+            reconfirmed: list[dict[str, Any]] = []
             for lt in lake_tables:
+                old_key = str(lt.get("分区键") or "").strip()
                 lt["分区键"] = partition_key
                 lt["pending"] = True
+                # 已注册的湖表换键等于一次新的分区确认，要登记新的同步回执
+                if lt.get("status") == "已注册" and old_key != str(partition_key).strip():
+                    reconfirmed.append(lt)
             store.log_event("partition_to_lake", "partition_policy", "lake_table", {
                 "policy_id": entry_id,
                 "table_name": table_name,
                 "partition_key": partition_key,
             })
+            if reconfirmed:
+                from app.services import service_for
+
+                sync_svc = service_for("catalog_partition_sync")
+                if sync_svc is not None:
+                    sync_svc.submit_receipt(
+                        table_name,
+                        partition_key,
+                        source_module="partition_policy",
+                        source_note=f"分区策略 {entry_id} 生效后重新确认",
+                        lake_table_id=reconfirmed[0].get("id"),
+                    )
 
         # 2) 检查冷热分层策略是否需要更新
         tier_entries = store.find_by_field("storage_tier", "生效湖表", table_name)

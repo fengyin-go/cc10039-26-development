@@ -7,6 +7,7 @@ from app.services.lake_table import LakeTableService
 from app.services.storage_tier import StorageTierService
 from app.services.file_compaction import FileCompactionService
 from app.services.data_catalog import DataCatalogService
+from app.services.catalog_partition_sync import CatalogPartitionSyncService
 from app.services.quality_monitor import QualityMonitorService
 from app.services.retention_mgr import RetentionMgrService
 from app.services.ingest_pipeline import IngestPipelineService
@@ -29,6 +30,7 @@ SERVICES: dict[str, BaseModuleService] = {
     "storage_tier": StorageTierService(),
     "file_compaction": FileCompactionService(),
     "data_catalog": DataCatalogService(),
+    "catalog_partition_sync": CatalogPartitionSyncService(),
     "quality_monitor": QualityMonitorService(),
     "retention_mgr": RetentionMgrService(),
     "ingest_pipeline": IngestPipelineService(),

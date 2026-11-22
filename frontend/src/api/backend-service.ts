@@ -1,8 +1,20 @@
 import { request } from './client'
 import { moduleMeta } from '@/data/modules'
-import type { ActionResult, EntryRow, OverviewResult, PageResult } from '@/data/types'
+import type { ActionResult, CatalogPartitionTrace, EntryRow, OverviewResult, PageResult } from '@/data/types'
 
 export { moduleMeta }
+
+export async function getEntry(key: string, id: number): Promise<EntryRow> {
+  const response = await request(`/api/${key}/${id}`)
+  if (!response.ok) throw new Error('业务详情读取失败')
+  return await response.json()
+}
+
+export async function getCatalogPartitionTrace(id: number): Promise<CatalogPartitionTrace> {
+  const response = await request(`/api/cross/catalog-partition-trace/${id}`)
+  if (!response.ok) throw new Error('分区溯源读取失败')
+  return await response.json()
+}
 
 export async function listEntries(
   key: string,

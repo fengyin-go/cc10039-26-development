@@ -60,6 +60,14 @@
             >
               {{ action }}
             </button>
+            <button
+              class="link"
+              type="button"
+              :data-testid="`detail-${row.id}`"
+              @click="openDetail(row)"
+            >
+              详情
+            </button>
           </td>
         </tr>
         <tr v-if="!rows.length">
@@ -86,6 +94,54 @@
       </form>
     </div>
 
+    <div v-if="detailEntry" class="modal-backdrop" data-testid="detail-modal">
+      <div class="modal">
+        <h3>{{ meta.entity }}详情 #{{ detailEntry.id }}</h3>
+        <dl class="detail-list">
+          <template v-for="(value, key) in detailEntry" :key="key">
+            <dt>{{ key }}</dt>
+            <dd>{{ formatValue(value) }}</dd>
+          </template>
+        </dl>
+        <section v-if="meta.key === 'data_catalog'" class="trace-panel" data-testid="partition-trace">
+          <h4>分区字段溯源</h4>
+          <p v-if="partitionTrace?.effective" class="trace-effective" data-testid="trace-effective">
+            当前生效：{{ partitionTrace.effective.分区字段 }}（{{ partitionTrace.effective.生效分区版本 }}
+            / {{ partitionTrace.effective.生效注册号 }}，来自 {{ partitionTrace.effective.分区同步来源 }}）
+          </p>
+          <p v-else class="trace-effective">尚未同步分区字段，可执行「同步分区字段」。</p>
+          <table v-if="partitionTrace?.sync_records.length" class="data-table">
+            <thead>
+              <tr>
+                <th>同步编号</th>
+                <th>分区版本</th>
+                <th>分区键</th>
+                <th>来源注册号</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="rec in partitionTrace.sync_records"
+                :key="String(rec.id)"
+                :data-effective="rec.同步编号 === partitionTrace.effective?.分区同步来源 || null"
+              >
+                <td>{{ rec.同步编号 }}</td>
+                <td>{{ rec.分区版本 }}</td>
+                <td>{{ rec.分区键 }}</td>
+                <td>{{ rec.来源注册号 }}</td>
+                <td>{{ rec.status }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p v-else>所属湖表暂无目录分区同步记录。</p>
+        </section>
+        <div class="page-actions">
+          <button class="btn" data-testid="close-detail" type="button" @click="closeDetail">关闭</button>
+        </div>
+      </div>
+    </div>
+
     <footer class="page-foot">
       <span>共 {{ total }} 条{{ meta.name }}记录</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
@@ -99,11 +155,13 @@ import { computed, onMounted, ref } from 'vue'
 import {
   createEntry,
   downloadEntries,
+  getCatalogPartitionTrace,
+  getEntry,
   listEntries,
   moduleMeta,
   runAction as applyAction,
 } from '@/api/backend-service'
-import type { EntryRow } from '@/data/types'
+import type { CatalogPartitionTrace, EntryRow } from '@/data/types'
 
 const props = defineProps<{ moduleKey: string }>()
 const meta = moduleMeta(props.moduleKey)
@@ -115,6 +173,8 @@ const filterFields = meta.fields.slice(0, 3)
 const showCreate = ref(false)
 const creating = ref(false)
 const createValues = ref<Record<string, string>>({})
+const detailEntry = ref<EntryRow | null>(null)
+const partitionTrace = ref<CatalogPartitionTrace | null>(null)
 const stats = computed(() => [
   { label: meta.metrics[0], value: total.value },
   { label: meta.metrics[1], value: rows.value.filter((row) => row.status === meta.statuses[1]).length },
@@ -174,6 +234,31 @@ async function runAction(action: string, row: EntryRow) {
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '操作失败'
   }
+}
+
+function formatValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '—'
+  if (Array.isArray(value)) return value.join('，')
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
+}
+
+async function openDetail(row: EntryRow) {
+  errorMessage.value = ''
+  partitionTrace.value = null
+  try {
+    detailEntry.value = await getEntry(meta.key, Number(row.id))
+    if (meta.key === 'data_catalog') {
+      partitionTrace.value = await getCatalogPartitionTrace(Number(row.id))
+    }
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '详情读取失败'
+  }
+}
+
+function closeDetail() {
+  detailEntry.value = null
+  partitionTrace.value = null
 }
 
 async function reload() {

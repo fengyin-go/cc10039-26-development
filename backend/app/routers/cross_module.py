@@ -56,6 +56,24 @@ def cross_module_overview() -> dict[str, Any]:
     return store.cross_module_stats()
 
 
+@router.get("/catalog-partition-trace/{entry_id}")
+def catalog_partition_trace(entry_id: int) -> dict[str, Any]:
+    """目录条目分区字段溯源。
+
+    返回目录条目当前生效的分区版本（来源注册号、分区版本、同步编号）、
+    所属湖表的全部目录分区同步记录（两个版本并存时可对照两个注册号
+    各自的键），以及对应的湖表注册记录。
+    """
+    service = service_for("data_catalog")
+    trace = getattr(service, "partition_field_trace", None)
+    if service is None or trace is None:
+        raise HTTPException(status_code=404, detail="数据目录模块未启用")
+    result = trace(entry_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"目录条目 {entry_id} 不存在或已归档")
+    return result
+
+
 @router.get("/pipeline-status")
 def pipeline_status() -> dict[str, Any]:
     """汇总数据湖治理全链路状态。

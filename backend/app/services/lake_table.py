@@ -61,6 +61,20 @@ class LakeTableService(BaseModuleService):
                 "message": "湖表已注册但缺少冷热分层策略",
             })
 
+        # 4) 分区键已确认：向数据目录登记分区同步回执（重复提交只记录一次）
+        if str(entry.get("分区键") or "").strip():
+            from app.services import service_for
+
+            sync_svc = service_for("catalog_partition_sync")
+            if sync_svc is not None:
+                sync_svc.submit_receipt(
+                    table_name,
+                    entry["分区键"],
+                    source_module="lake_table",
+                    source_note=f"湖表注册确认（湖表 {entry_id}）",
+                    lake_table_id=entry_id,
+                )
+
         store.log_event("lake_table_registered", "lake_table", "lake_table", {
             "table_id": entry_id,
             "table_name": table_name,

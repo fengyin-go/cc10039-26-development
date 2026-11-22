@@ -38,6 +38,14 @@ body { margin: 0; background: #f6f8fb; color: #1f2937; }
 .create-field { display: block; margin-bottom: 10px; }
 .create-field span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
 .create-field input { width: 100%; box-sizing: border-box; border: 1px solid var(--border); border-radius: 6px; padding: 8px; }
+/* 记录详情与分区溯源 */
+.detail-list { display: grid; grid-template-columns: 140px 1fr; gap: 6px 12px; margin: 0 0 12px; }
+.detail-list dt { color: var(--muted); font-size: 12px; }
+.detail-list dd { margin: 0; font-size: 13px; word-break: break-all; }
+.trace-panel { border-top: 1px solid var(--border); padding-top: 10px; margin-bottom: 12px; }
+.trace-panel h4 { margin: 0 0 8px; font-size: 14px; }
+.trace-effective { font-size: 13px; background: #eef4ff; border: 1px solid #c7d9fd; border-radius: 6px; padding: 8px 10px; }
+.trace-panel tr[data-effective] td { background: #f0f7ff; }
 /* DAG 拓扑图 */
 .dag-wrap { position: relative; overflow: hidden; border: 1px solid var(--border); border-radius: 8px; background: #fff; min-height: 320px; user-select: none; }
 .dag-svg { width: 100%; height: 100%; }
